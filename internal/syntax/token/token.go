@@ -11,8 +11,11 @@ type Kind int
 
 //go:generate stringer -type Kind -linecomment
 const (
-	EOF   Kind = iota // EOF
-	Error             // Error
+	EOF       Kind = iota // EOF
+	Error                 // Error
+	Comment               // Comment
+	Eq                    // Eq
+	RawString             // RawString
 )
 
 // Token is a lexical token in a .env file.

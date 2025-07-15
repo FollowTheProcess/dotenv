@@ -10,11 +10,14 @@ func _() {
 	var x [1]struct{}
 	_ = x[EOF-0]
 	_ = x[Error-1]
+	_ = x[Comment-2]
+	_ = x[Eq-3]
+	_ = x[RawString-4]
 }
 
-const _Kind_name = "EOFError"
+const _Kind_name = "EOFErrorCommentEqRawString"
 
-var _Kind_index = [...]uint8{0, 3, 8}
+var _Kind_index = [...]uint8{0, 3, 8, 15, 17, 26}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {

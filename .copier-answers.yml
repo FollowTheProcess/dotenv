@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier
+_commit: v0.49.1
+_src_path: gh:FollowTheProcess/go-template
+author_name: Tom Fleet
+dependency_bot: renovate
+description: Load environment variables from a .env file
+github_url: https://github.com/FollowTheProcess/dotenv
+github_username: FollowTheProcess
+license: Apache-2.0
+linter: golangci-lint
+module_path: go.followtheprocess.codes/dotenv
+project_name: dotenv
+project_slug: dotenv
+project_type: library

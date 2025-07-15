@@ -21,6 +21,13 @@ tasks:
     cmds:
       - go mod tidy
 
+  gen:
+    desc: Run go generate
+    sources:
+      - "**/*.go"
+    cmds:
+      - go generate ./...
+
   fmt:
     desc: Run go fmt on all source files
     sources:
@@ -37,8 +44,6 @@ tasks:
       - "**/testdata/**/*"
     cmds:
       - go test -race ./... {{ .CLI_ARGS }}
-
-  
 
   bench:
     desc: Run all project benchmarks
@@ -100,5 +105,3 @@ tasks:
     cmds:
       - go get -u ./...
       - go mod tidy
-
-  

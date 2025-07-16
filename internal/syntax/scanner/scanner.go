@@ -52,6 +52,14 @@ func (s *Scanner) Scan() token.Token {
 		return s.scanEq()
 	case '\'':
 		return s.scanRawString()
+	case '"':
+		return s.scanString()
+	case '$':
+		return s.scanDollar()
+	case '{':
+		return s.scanOpenBracket()
+	case '}':
+		return s.scanCloseBracket()
 	default:
 		if isAlpha(char) {
 			return s.scanIdent()
@@ -211,9 +219,12 @@ func (s *Scanner) scanComment() token.Token {
 
 // scanEq scans a '=' literal.
 func (s *Scanner) scanEq() token.Token {
-	s.next() // Absorb the '='
 	return s.token(token.Eq)
 }
+
+// TODO(@FollowTheProcess): Both RawString and String include the opening and closing quotes
+// in their span. This makes sense to me for error reporting but I'm not sure if we should
+// be stripping the quotes for easier handling of the string value later
 
 // scanRawString scans a single quoted string literal.
 //
@@ -227,6 +238,39 @@ func (s *Scanner) scanRawString() token.Token {
 
 	s.next() // Consume the closing single quote
 	return s.token(token.RawString)
+}
+
+// scanString scans a double quoted string literal.
+//
+// Unlike a raw string with single quotes, a double quoted literal may contain
+// variable and/or command interpolation as well as escape sequences.
+func (s *Scanner) scanString() token.Token {
+	s.takeUntil('"', eof)
+	if s.peek() == eof {
+		return s.error("unterminated string literal")
+	}
+
+	// TODO(@FollowTheProcess): Interpolation, I think escape sequences
+	// we can just handle later with Go's string stuff so we don't
+	// need to do anything special here
+
+	s.next() // Consume the closing '"'
+	return s.token(token.String)
+}
+
+// scanDollar scans a '$' literal.
+func (s *Scanner) scanDollar() token.Token {
+	return s.token(token.Dollar)
+}
+
+// scanOpenBracket scans a '{' literal.
+func (s *Scanner) scanOpenBracket() token.Token {
+	return s.token(token.OpenBracket)
+}
+
+// scanCloseBracket scans a '}' literal.
+func (s *Scanner) scanCloseBracket() token.Token {
+	return s.token(token.CloseBracket)
 }
 
 // scanIdent scans a raw identifier e.g. name of an env var.

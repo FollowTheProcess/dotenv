@@ -11,18 +11,15 @@ type Kind int
 
 //go:generate stringer -type Kind -linecomment
 const (
-	EOF        Kind = iota // EOF
-	Error                  // Error
-	Comment                // Comment
-	Eq                     // Eq
-	RawString              // RawString
-	String                 // String
-	Ident                  // Ident
-	Dollar                 // Dollar
-	OpenBrace              // OpenBrace
-	CloseBrace             // CloseBrace
-	OpenParen              // OpenParen
-	CloseParen             // CloseParen
+	EOF       Kind = iota // EOF
+	Error                 // Error
+	Comment               // Comment
+	Eq                    // Eq
+	RawString             // RawString
+	String                // String
+	Ident                 // Ident
+	VarInterp             // VarInterp
+	CmdInterp             // CmdInterp
 )
 
 // Token is a lexical token in a .env file.

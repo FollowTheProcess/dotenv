@@ -221,6 +221,16 @@ func TestBasics(t *testing.T) {
 				{Kind: token.EOF, Start: 60, End: 60},
 			},
 		},
+		{
+			name: "export is ignored",
+			src:  "export SOME_VAR=VALUE",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 7, End: 15},
+				{Kind: token.Eq, Start: 15, End: 16},
+				{Kind: token.Ident, Start: 16, End: 21},
+				{Kind: token.EOF, Start: 21, End: 21},
+			},
+		},
 	}
 
 	for _, tt := range tests {

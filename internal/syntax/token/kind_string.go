@@ -16,13 +16,15 @@ func _() {
 	_ = x[String-5]
 	_ = x[Ident-6]
 	_ = x[Dollar-7]
-	_ = x[OpenBracket-8]
-	_ = x[CloseBracket-9]
+	_ = x[OpenBrace-8]
+	_ = x[CloseBrace-9]
+	_ = x[OpenParen-10]
+	_ = x[CloseParen-11]
 }
 
-const _Kind_name = "EOFErrorCommentEqRawStringStringIdentDollarOpenBracketCloseBracket"
+const _Kind_name = "EOFErrorCommentEqRawStringStringIdentDollarOpenBraceCloseBraceOpenParenCloseParen"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 17, 26, 32, 37, 43, 54, 66}
+var _Kind_index = [...]uint8{0, 3, 8, 15, 17, 26, 32, 37, 43, 52, 62, 71, 81}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {

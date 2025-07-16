@@ -49,17 +49,21 @@ func (s *Scanner) Scan() token.Token {
 	case '#':
 		return s.scanComment()
 	case '=':
-		return s.scanEq()
+		return s.token(token.Eq)
 	case '\'':
 		return s.scanRawString()
 	case '"':
 		return s.scanString()
 	case '$':
-		return s.scanDollar()
+		return s.token(token.Dollar)
 	case '{':
-		return s.scanOpenBracket()
+		return s.token(token.OpenBrace)
 	case '}':
-		return s.scanCloseBracket()
+		return s.token(token.CloseBrace)
+	case '(':
+		return s.token(token.OpenParen)
+	case ')':
+		return s.token(token.CloseParen)
 	default:
 		if isAlpha(char) {
 			return s.scanIdent()
@@ -217,27 +221,29 @@ func (s *Scanner) scanComment() token.Token {
 	return s.token(token.Comment)
 }
 
-// scanEq scans a '=' literal.
-func (s *Scanner) scanEq() token.Token {
-	return s.token(token.Eq)
-}
-
-// TODO(@FollowTheProcess): Both RawString and String include the opening and closing quotes
-// in their span. This makes sense to me for error reporting but I'm not sure if we should
-// be stripping the quotes for easier handling of the string value later
-
 // scanRawString scans a single quoted string literal.
 //
 // These are treated as a raw string with no variable interpolation
 // or command substitution allowed.
 func (s *Scanner) scanRawString() token.Token {
-	s.takeUntil('\'', '\n', eof)
+	// We track start and end separately here so we can chop the quotes
+	// off the start and end of the string
+	start := s.pos
+
+	s.takeUntil('\'', eof)
 	if s.peek() == eof {
 		return s.error("unterminated string literal")
 	}
 
-	s.next() // Consume the closing single quote
-	return s.token(token.RawString)
+	end := s.pos
+	s.next() // Consume the closing quote
+	tok := token.Token{
+		Kind:  token.RawString,
+		Start: start,
+		End:   end,
+	}
+	s.start = s.pos // Reset
+	return tok
 }
 
 // scanString scans a double quoted string literal.
@@ -245,6 +251,10 @@ func (s *Scanner) scanRawString() token.Token {
 // Unlike a raw string with single quotes, a double quoted literal may contain
 // variable and/or command interpolation as well as escape sequences.
 func (s *Scanner) scanString() token.Token {
+	// We track start and end separately here so we can chop the quotes
+	// off the start and end of the string
+	start := s.pos
+
 	s.takeUntil('"', eof)
 	if s.peek() == eof {
 		return s.error("unterminated string literal")
@@ -254,23 +264,15 @@ func (s *Scanner) scanString() token.Token {
 	// we can just handle later with Go's string stuff so we don't
 	// need to do anything special here
 
+	end := s.pos
 	s.next() // Consume the closing '"'
-	return s.token(token.String)
-}
-
-// scanDollar scans a '$' literal.
-func (s *Scanner) scanDollar() token.Token {
-	return s.token(token.Dollar)
-}
-
-// scanOpenBracket scans a '{' literal.
-func (s *Scanner) scanOpenBracket() token.Token {
-	return s.token(token.OpenBracket)
-}
-
-// scanCloseBracket scans a '}' literal.
-func (s *Scanner) scanCloseBracket() token.Token {
-	return s.token(token.CloseBracket)
+	tok := token.Token{
+		Kind:  token.String,
+		Start: start,
+		End:   end,
+	}
+	s.start = s.pos // Reset
+	return tok
 }
 
 // scanIdent scans a raw identifier e.g. name of an env var.

@@ -152,6 +152,64 @@ func TestBasics(t *testing.T) {
 	}
 }
 
+func FuzzScanner(f *testing.F) {
+	const src = `
+# This is a comment and is ignored by the parser completely
+NUMBER_OF_THINGS=123 # Comments can also go on lines
+USERNAME=mysuperuser
+
+# Command substitution
+API_KEY=$(op read op://MyVault/SomeService/api_key)
+
+# Variable interpolation
+EMAIL=${USER}@email.com # We added $USER above
+CACHE_DIR=${HOME}/.cache # Can also reference existing system env vars
+DATABASE_URL="postgres://${USER}@localhost/my_database"
+
+# Single quotes force the string to be treated as literal
+# no interpolation or command substitution will happen here
+LITERAL='${USER} should show up literally'
+
+# Multiline strings can be declared with """. Leading and trailing
+# whitespace will be trimmed allowing for nicer formatting.
+MANY_LINES="""
+This is a lot of text with multiple lines
+
+You could use this to store the contents of a file or
+an X509 cert, an SSH key etc.
+"""
+
+# Escape sequences work as you'd expect
+ESCAPE_ME="Newline\n and a tab\t etc."
+
+# You can even use the export keyword to retain compatibility with e.g. bash
+export SOMETHING=yes
+`
+	f.Add(src)
+
+	// The scanner must not panic or loop indefinitely
+	f.Fuzz(func(t *testing.T, src string) {
+		// No error handler installed, it would stop the test instantly
+		scanner := scanner.New("fuzz", []byte(src), nil)
+
+		for tok := range scanner.All() {
+			// Positions must be positive integers
+			test.True(t, tok.Start >= 0, test.Context("token start position (%d) was negative", tok.Start))
+			test.True(t, tok.End >= 0, test.Context("token end position (%d) was negative", tok.End))
+
+			// The kind must be one of the known kinds
+			test.True(
+				t,
+				(tok.Kind >= token.EOF) && (tok.Kind <= token.CloseParen),
+				test.Context("token %s was not one of the pre-defined kinds", tok),
+			)
+
+			// End must be >= Start
+			test.True(t, tok.End >= tok.Start, test.Context("token %s had invalid start and end positions", tok))
+		}
+	})
+}
+
 // testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing
 // the enclosing test.
 func testFailHandler(tb testing.TB) syntax.ErrorHandler {

@@ -10,6 +10,15 @@ import (
 	"go.followtheprocess.codes/test"
 )
 
+const multiLineString = `
+"""This is a literal string,
+
+it could have multiple lines.
+
+And this one does!
+"""
+`
+
 func TestBasics(t *testing.T) {
 	tests := []struct {
 		name string        // Name of the test case
@@ -61,6 +70,14 @@ func TestBasics(t *testing.T) {
 			want: []token.Token{
 				{Kind: token.String, Start: 3, End: 79},
 				{Kind: token.EOF, Start: 82, End: 82},
+			},
+		},
+		{
+			name: "actual multiline string",
+			src:  multiLineString,
+			want: []token.Token{
+				{Kind: token.String, Start: 4, End: 81},
+				{Kind: token.EOF, Start: 85, End: 85},
 			},
 		},
 		{

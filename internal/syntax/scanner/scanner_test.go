@@ -48,6 +48,22 @@ func TestBasics(t *testing.T) {
 			},
 		},
 		{
+			name: "string literal",
+			src:  `"This is a literal string"`,
+			want: []token.Token{
+				{Kind: token.String, Start: 1, End: 25},
+				{Kind: token.EOF, Start: 26, End: 26},
+			},
+		},
+		{
+			name: "multiline string literal",
+			src:  `"""This is a literal string, it could have multiple lines. But this one doesn't"""`,
+			want: []token.Token{
+				{Kind: token.String, Start: 3, End: 79},
+				{Kind: token.EOF, Start: 82, End: 82},
+			},
+		},
+		{
 			name: "ident",
 			src:  "SOME_VAR",
 			want: []token.Token{

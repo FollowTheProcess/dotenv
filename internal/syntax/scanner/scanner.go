@@ -236,13 +236,15 @@ func (s *Scanner) scanRawString() token.Token {
 	}
 
 	end := s.pos
-	s.next() // Consume the closing quote
 	tok := token.Token{
 		Kind:  token.RawString,
 		Start: start,
 		End:   end,
 	}
+
+	s.next()        // Consume the closing quote
 	s.start = s.pos // Reset
+
 	return tok
 }
 
@@ -265,13 +267,15 @@ func (s *Scanner) scanString() token.Token {
 	// need to do anything special here
 
 	end := s.pos
-	s.next() // Consume the closing '"'
 	tok := token.Token{
 		Kind:  token.String,
 		Start: start,
 		End:   end,
 	}
+
+	s.next()        // Consume the closing '"'
 	s.start = s.pos // Reset
+
 	return tok
 }
 

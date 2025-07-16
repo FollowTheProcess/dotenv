@@ -19,6 +19,39 @@ And this one does!
 """
 `
 
+const fullFile = `
+# This is a comment and is ignored by the parser completely
+NUMBER_OF_THINGS=123 # Comments can also go on lines
+USERNAME=mysuperuser
+
+# Command substitution
+API_KEY=$(op read op://MyVault/SomeService/api_key)
+
+# Variable interpolation
+EMAIL=${USER}@email.com # We added $USER above
+CACHE_DIR=${HOME}/.cache # Can also reference existing system env vars
+DATABASE_URL="postgres://${USER}@localhost/my_database"
+
+# Single quotes force the string to be treated as literal
+# no interpolation or command substitution will happen here
+LITERAL='${USER} should show up literally'
+
+# Multiline strings can be declared with """. Leading and trailing
+# whitespace will be trimmed allowing for nicer formatting.
+MANY_LINES="""
+This is a lot of text with multiple lines
+
+You could use this to store the contents of a file or
+an X509 cert, an SSH key etc.
+"""
+
+# Escape sequences work as you'd expect
+ESCAPE_ME="Newline\n and a tab\t etc."
+
+# You can even use the export keyword to retain compatibility with e.g. bash
+export SOMETHING=yes
+`
+
 func TestBasics(t *testing.T) {
 	tests := []struct {
 		name string        // Name of the test case
@@ -99,6 +132,26 @@ func TestBasics(t *testing.T) {
 			},
 		},
 		{
+			name: "digits",
+			src:  "SOME_VAR=123",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.Eq, Start: 8, End: 9},
+				{Kind: token.Ident, Start: 9, End: 12},
+				{Kind: token.EOF, Start: 12, End: 12},
+			},
+		},
+		{
+			name: "bare var spaces",
+			src:  "SOME_VAR = SOME_VALUE",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.Eq, Start: 9, End: 10},
+				{Kind: token.Ident, Start: 11, End: 21},
+				{Kind: token.EOF, Start: 21, End: 21},
+			},
+		},
+		{
 			name: "single quoted var",
 			src:  "SOME_VAR='SOME_VALUE'",
 			want: []token.Token{
@@ -124,8 +177,7 @@ func TestBasics(t *testing.T) {
 			want: []token.Token{
 				{Kind: token.Ident, Start: 0, End: 8},
 				{Kind: token.Eq, Start: 8, End: 9},
-				{Kind: token.Dollar, Start: 9, End: 10},
-				{Kind: token.Ident, Start: 10, End: 21},
+				{Kind: token.VarInterp, Start: 10, End: 21},
 				{Kind: token.EOF, Start: 21, End: 21},
 			},
 		},
@@ -135,24 +187,38 @@ func TestBasics(t *testing.T) {
 			want: []token.Token{
 				{Kind: token.Ident, Start: 0, End: 8},
 				{Kind: token.Eq, Start: 8, End: 9},
-				{Kind: token.Dollar, Start: 9, End: 10},
-				{Kind: token.OpenBrace, Start: 10, End: 11},
-				{Kind: token.Ident, Start: 11, End: 22},
-				{Kind: token.CloseBrace, Start: 22, End: 23},
+				{Kind: token.VarInterp, Start: 11, End: 22},
 				{Kind: token.EOF, Start: 23, End: 23},
 			},
 		},
 		{
 			name: "command expansion",
-			src:  "SOME_VAR=$(ANOTHER_VAR)",
+			src:  "SOME_VAR=$(op read op://MyVault/SomeService/api_key)",
 			want: []token.Token{
 				{Kind: token.Ident, Start: 0, End: 8},
 				{Kind: token.Eq, Start: 8, End: 9},
-				{Kind: token.Dollar, Start: 9, End: 10},
-				{Kind: token.OpenParen, Start: 10, End: 11},
-				{Kind: token.Ident, Start: 11, End: 22},
-				{Kind: token.CloseParen, Start: 22, End: 23},
-				{Kind: token.EOF, Start: 23, End: 23},
+				{Kind: token.CmdInterp, Start: 11, End: 51},
+				{Kind: token.EOF, Start: 52, End: 52},
+			},
+		},
+		{
+			name: "string var interpolation",
+			src:  `URL="https://${ACCESS_TOKEN}.api.com/v1"`,
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 3},
+				{Kind: token.Eq, Start: 3, End: 4},
+				{Kind: token.String, Start: 5, End: 39},
+				{Kind: token.EOF, Start: 40, End: 40},
+			},
+		},
+		{
+			name: "string cmd interpolation",
+			src:  `SUPER_SECRET="Sentence with a $(cat ./apikey.txt) cmd in it"`,
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 12},
+				{Kind: token.Eq, Start: 12, End: 13},
+				{Kind: token.String, Start: 14, End: 59},
+				{Kind: token.EOF, Start: 60, End: 60},
 			},
 		},
 	}
@@ -170,39 +236,7 @@ func TestBasics(t *testing.T) {
 }
 
 func FuzzScanner(f *testing.F) {
-	const src = `
-# This is a comment and is ignored by the parser completely
-NUMBER_OF_THINGS=123 # Comments can also go on lines
-USERNAME=mysuperuser
-
-# Command substitution
-API_KEY=$(op read op://MyVault/SomeService/api_key)
-
-# Variable interpolation
-EMAIL=${USER}@email.com # We added $USER above
-CACHE_DIR=${HOME}/.cache # Can also reference existing system env vars
-DATABASE_URL="postgres://${USER}@localhost/my_database"
-
-# Single quotes force the string to be treated as literal
-# no interpolation or command substitution will happen here
-LITERAL='${USER} should show up literally'
-
-# Multiline strings can be declared with """. Leading and trailing
-# whitespace will be trimmed allowing for nicer formatting.
-MANY_LINES="""
-This is a lot of text with multiple lines
-
-You could use this to store the contents of a file or
-an X509 cert, an SSH key etc.
-"""
-
-# Escape sequences work as you'd expect
-ESCAPE_ME="Newline\n and a tab\t etc."
-
-# You can even use the export keyword to retain compatibility with e.g. bash
-export SOMETHING=yes
-`
-	f.Add(src)
+	f.Add(fullFile)
 
 	// The scanner must not panic or loop indefinitely
 	f.Fuzz(func(t *testing.T, src string) {
@@ -217,7 +251,7 @@ export SOMETHING=yes
 			// The kind must be one of the known kinds
 			test.True(
 				t,
-				(tok.Kind >= token.EOF) && (tok.Kind <= token.CloseParen),
+				(tok.Kind >= token.EOF) && (tok.Kind <= token.CmdInterp),
 				test.Context("token %s was not one of the pre-defined kinds", tok),
 			)
 
@@ -225,6 +259,19 @@ export SOMETHING=yes
 			test.True(t, tok.End >= tok.Start, test.Context("token %s had invalid start and end positions", tok))
 		}
 	})
+}
+
+func BenchmarkScanner(b *testing.B) {
+	for b.Loop() {
+		scanner := scanner.New("bench", []byte(fullFile), testFailHandler(b))
+
+		for {
+			tok := scanner.Scan()
+			if tok.Is(token.EOF, token.Error) {
+				break
+			}
+		}
+	}
 }
 
 // testFailHandler returns a [syntax.ErrorHandler] that handles scanning errors by failing

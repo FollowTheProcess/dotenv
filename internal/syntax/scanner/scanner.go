@@ -56,17 +56,9 @@ func (s *Scanner) Scan() token.Token {
 	case '"':
 		return s.scanString()
 	case '$':
-		return s.token(token.Dollar)
-	case '{':
-		return s.token(token.OpenBrace)
-	case '}':
-		return s.token(token.CloseBrace)
-	case '(':
-		return s.token(token.OpenParen)
-	case ')':
-		return s.token(token.CloseParen)
+		return s.scanExpansion()
 	default:
-		if isAlpha(char) {
+		if isIdent(char) {
 			return s.scanIdent()
 		}
 		return s.errorf("unrecognised character: %q", char)
@@ -347,6 +339,59 @@ func (s *Scanner) scanMultilineString() token.Token {
 
 	s.discard()
 	return tok
+}
+
+// scanExpansion scans an expansion begun with a '$' in any of the following forms:
+//   - $VAR - Normal env var expansion and replacement
+//   - ${VAR} - As above but typically used inside strings for interpolation
+//   - $(<cmd>) - Command substitution
+//
+// The opening '$' has already been consumed by Scan.
+func (s *Scanner) scanExpansion() token.Token {
+	// We don't care about the '$' other than the fact it got us here
+	s.discard()
+
+	switch next := s.next(); next {
+	case '{':
+		// ${VAR}
+		s.discard() // We don't actually want the '{'
+		start := s.pos
+		s.takeUntil('}', eof)
+		if s.peek() == eof {
+			return s.error("unterminated variable expansion")
+		}
+		end := s.pos
+		s.next() // Consume the closing '}'
+		s.discard()
+		return token.Token{
+			Kind:  token.VarInterp,
+			Start: start,
+			End:   end,
+		}
+	case '(':
+		// $(<cmd>)
+		s.discard() // We don't want the '(' either
+		start := s.pos
+		s.takeUntil(')', eof)
+		if s.peek() == eof {
+			return s.error("unterminated command expansion")
+		}
+		end := s.pos
+		s.next() // Consume the closing ')'
+		s.discard()
+		return token.Token{
+			Kind:  token.CmdInterp,
+			Start: start,
+			End:   end,
+		}
+	default:
+		if isIdent(next) {
+			// $VAR
+			s.takeWhile(isIdent)
+			return s.token(token.VarInterp)
+		}
+		return s.errorf("unexpected char %q, '$' must be followed by one of '(' or '{'", next)
+	}
 }
 
 // scanIdent scans a raw identifier e.g. name of an env var.

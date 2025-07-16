@@ -3,6 +3,7 @@
 package scanner
 
 import (
+	"bytes"
 	"fmt"
 	"iter"
 	"slices"
@@ -121,6 +122,40 @@ func (s *Scanner) peek() rune {
 	return char
 }
 
+// rest returns the rest of src from the scanners current position to eof.
+func (s *Scanner) rest() []byte {
+	if s.pos >= len(s.src) {
+		return nil
+	}
+
+	return s.src[s.pos:]
+}
+
+// discard discards the current token start position, effectively discarding
+// anything the scanner has scanned over in the meantime.
+func (s *Scanner) discard() {
+	s.start = s.pos
+}
+
+// take consumes a run of characters if and only if they precisely match
+// the ones provided.
+//
+// If it does not match, take returns false and the scanner state is not modified.
+//
+// If however, the next characters in the input do match those provided, they are
+// consumed and take returns true.
+func (s *Scanner) take(chars string) bool {
+	if !bytes.HasPrefix(s.rest(), []byte(chars)) {
+		return false
+	}
+
+	for range chars {
+		s.next()
+	}
+
+	return true
+}
+
 // skip ignores any characters for which the predicate returns true, stopping at the
 // first one that returns false such that after it returns, [Scanner.next] returns the
 // first 'false' char.
@@ -128,11 +163,8 @@ func (s *Scanner) peek() rune {
 // The scanner start position is brought up to the current position before returning, effectively
 // ignoring everything it's travelled over in the meantime.
 func (s *Scanner) skip(predicate func(r rune) bool) {
-	for predicate(s.peek()) {
-		s.next()
-	}
-
-	s.start = s.pos
+	s.takeWhile(predicate)
+	s.discard()
 }
 
 // takeUntil consumes characters until it hits any of the specified runes.
@@ -171,7 +203,7 @@ func (s *Scanner) token(kind token.Kind) token.Token {
 		End:   s.pos,
 	}
 
-	s.start = s.pos
+	s.discard() // Reset the state, we already have the token
 	return tok
 }
 
@@ -242,8 +274,8 @@ func (s *Scanner) scanRawString() token.Token {
 		End:   end,
 	}
 
-	s.next()        // Consume the closing quote
-	s.start = s.pos // Reset
+	s.next()    // Consume the closing quote
+	s.discard() // Reset, we already have the token
 
 	return tok
 }
@@ -253,6 +285,12 @@ func (s *Scanner) scanRawString() token.Token {
 // Unlike a raw string with single quotes, a double quoted literal may contain
 // variable and/or command interpolation as well as escape sequences.
 func (s *Scanner) scanString() token.Token {
+	// The opening '"' has already been consumed
+	if s.take(`""`) {
+		s.discard()
+		return s.scanMultilineString()
+	}
+
 	// We track start and end separately here so we can chop the quotes
 	// off the start and end of the string
 	start := s.pos
@@ -273,9 +311,41 @@ func (s *Scanner) scanString() token.Token {
 		End:   end,
 	}
 
-	s.next()        // Consume the closing '"'
-	s.start = s.pos // Reset
+	s.next()    // Consume the closing '"'
+	s.discard() // Reset, we have the token now
 
+	return tok
+}
+
+// scanMultilineString scans a '"""' multiline string.
+//
+// The opening 3 quotes have already been consumed.
+func (s *Scanner) scanMultilineString() token.Token {
+	// We track start and end separately to chop off the quotes
+	start := s.pos
+
+	s.takeUntil('"', eof)
+	if s.peek() == eof {
+		return s.error("unterminated string literal")
+	}
+
+	end := s.pos
+
+	// Unlike normal strings, we actually need 2 more quotes to
+	// properly terminate it
+	if !s.take(`"""`) {
+		return s.error("unterminated multiline string")
+	}
+
+	// TODO(@FollowTheProcess): Interpolation
+
+	tok := token.Token{
+		Kind:  token.String,
+		Start: start,
+		End:   end,
+	}
+
+	s.discard()
 	return tok
 }
 

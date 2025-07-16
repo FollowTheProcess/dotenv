@@ -396,6 +396,13 @@ func (s *Scanner) scanExpansion() token.Token {
 
 // scanIdent scans a raw identifier e.g. name of an env var.
 func (s *Scanner) scanIdent() token.Token {
+	// export is ignored, but the 'e' has already been consumed when Scan
+	// called next()
+	if s.take("xport") {
+		s.discard()
+		s.skip(unicode.IsSpace)
+	}
+
 	s.takeWhile(isIdent)
 	return s.token(token.Ident)
 }

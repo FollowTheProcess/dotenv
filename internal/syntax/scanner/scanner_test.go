@@ -55,6 +55,60 @@ func TestBasics(t *testing.T) {
 				{Kind: token.EOF, Start: 8, End: 8},
 			},
 		},
+		{
+			name: "bare var",
+			src:  "SOME_VAR=SOME_VALUE",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.Eq, Start: 8, End: 9},
+				{Kind: token.Ident, Start: 9, End: 19},
+				{Kind: token.EOF, Start: 19, End: 19},
+			},
+		},
+		{
+			name: "single quoted var",
+			src:  "SOME_VAR='SOME_VALUE'",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.Eq, Start: 8, End: 9},
+				{Kind: token.RawString, Start: 9, End: 21},
+				{Kind: token.EOF, Start: 21, End: 21},
+			},
+		},
+		{
+			name: "double quoted var",
+			src:  `SOME_VAR="SOME_VALUE"`,
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.Eq, Start: 8, End: 9},
+				{Kind: token.String, Start: 9, End: 21},
+				{Kind: token.EOF, Start: 21, End: 21},
+			},
+		},
+		{
+			name: "raw var expansion",
+			src:  "SOME_VAR=$ANOTHER_VAR",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.Eq, Start: 8, End: 9},
+				{Kind: token.Dollar, Start: 9, End: 10},
+				{Kind: token.Ident, Start: 10, End: 21},
+				{Kind: token.EOF, Start: 21, End: 21},
+			},
+		},
+		{
+			name: "bracketed var expansion",
+			src:  "SOME_VAR=${ANOTHER_VAR}",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.Eq, Start: 8, End: 9},
+				{Kind: token.Dollar, Start: 9, End: 10},
+				{Kind: token.OpenBracket, Start: 10, End: 11},
+				{Kind: token.Ident, Start: 11, End: 22},
+				{Kind: token.CloseBracket, Start: 22, End: 23},
+				{Kind: token.EOF, Start: 23, End: 23},
+			},
+		},
 	}
 
 	for _, tt := range tests {

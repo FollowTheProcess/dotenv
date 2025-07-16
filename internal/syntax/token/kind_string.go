@@ -13,11 +13,12 @@ func _() {
 	_ = x[Comment-2]
 	_ = x[Eq-3]
 	_ = x[RawString-4]
+	_ = x[Ident-5]
 }
 
-const _Kind_name = "EOFErrorCommentEqRawString"
+const _Kind_name = "EOFErrorCommentEqRawStringIdent"
 
-var _Kind_index = [...]uint8{0, 3, 8, 15, 17, 26}
+var _Kind_index = [...]uint8{0, 3, 8, 15, 17, 26, 31}
 
 func (i Kind) String() string {
 	if i < 0 || i >= Kind(len(_Kind_index)-1) {

@@ -16,6 +16,7 @@ const (
 	Comment               // Comment
 	Eq                    // Eq
 	RawString             // RawString
+	Ident                 // Ident
 )
 
 // Token is a lexical token in a .env file.

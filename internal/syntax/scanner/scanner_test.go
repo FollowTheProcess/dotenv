@@ -40,11 +40,19 @@ func TestBasics(t *testing.T) {
 			},
 		},
 		{
-			name: "string literal (single quotes)",
+			name: "raw string literal",
 			src:  "'This is a literal string ${VAR} $(echo hello)'",
 			want: []token.Token{
 				{Kind: token.RawString, Start: 0, End: 47},
 				{Kind: token.EOF, Start: 47, End: 47},
+			},
+		},
+		{
+			name: "ident",
+			src:  "SOME_VAR",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 8},
+				{Kind: token.EOF, Start: 8, End: 8},
 			},
 		},
 	}

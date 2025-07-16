@@ -53,6 +53,9 @@ func (s *Scanner) Scan() token.Token {
 	case '\'':
 		return s.scanRawString()
 	default:
+		if isAlpha(char) {
+			return s.scanIdent()
+		}
 		return s.errorf("unrecognised character: %q", char)
 	}
 }
@@ -137,6 +140,14 @@ func (s *Scanner) takeUntil(runes ...rune) {
 	}
 }
 
+// takeWhile consumes characters so long as the predicate returns true, stopping at the
+// first one that returns false such that after it returns, [Scanner.next] returns the first 'false' rune.
+func (s *Scanner) takeWhile(predicate func(r rune) bool) {
+	for predicate(s.peek()) {
+		s.next()
+	}
+}
+
 // token returns a given token type using the scanner's internal
 // state to populate position information.
 //
@@ -216,4 +227,25 @@ func (s *Scanner) scanRawString() token.Token {
 
 	s.next() // Consume the closing single quote
 	return s.token(token.RawString)
+}
+
+// scanIdent scans a raw identifier e.g. name of an env var.
+func (s *Scanner) scanIdent() token.Token {
+	s.takeWhile(isIdent)
+	return s.token(token.Ident)
+}
+
+// isAlpha reports whether r is an alpha character.
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+}
+
+// isDigit reports whether r is a valid ASCII digit.
+func isDigit(r rune) bool {
+	return r >= '0' && r <= '9'
+}
+
+// isIdent reports whether r is a valid identifier character.
+func isIdent(r rune) bool {
+	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
 }

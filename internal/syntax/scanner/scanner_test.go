@@ -192,6 +192,17 @@ func TestBasics(t *testing.T) {
 			},
 		},
 		{
+			name: "bracketed var expansion in text",
+			src:  "EMAIL=${USER}@email.com",
+			want: []token.Token{
+				{Kind: token.Ident, Start: 0, End: 5},
+				{Kind: token.Eq, Start: 5, End: 6},
+				{Kind: token.VarInterp, Start: 8, End: 12},
+				{Kind: token.String, Start: 13, End: 23},
+				{Kind: token.EOF, Start: 23, End: 23},
+			},
+		},
+		{
 			name: "command expansion",
 			src:  "SOME_VAR=$(op read op://MyVault/SomeService/api_key)",
 			want: []token.Token{

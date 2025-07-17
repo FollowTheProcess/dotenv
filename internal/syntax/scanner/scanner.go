@@ -58,10 +58,14 @@ func (s *Scanner) Scan() token.Token {
 	case '$':
 		return s.scanExpansion()
 	default:
-		if isIdent(char) {
+		switch {
+		case isIdent(char):
 			return s.scanIdent()
+		case isValue(char):
+			return s.scanValue()
+		default:
+			return s.errorf("unrecognised character: %q", char)
 		}
-		return s.errorf("unrecognised character: %q", char)
 	}
 }
 
@@ -407,6 +411,14 @@ func (s *Scanner) scanIdent() token.Token {
 	return s.token(token.Ident)
 }
 
+// scanValue scans an env var value.
+//
+// It is emitted as a String.
+func (s *Scanner) scanValue() token.Token {
+	s.takeWhile(isValue)
+	return s.token(token.String)
+}
+
 // isAlpha reports whether r is an alpha character.
 func isAlpha(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
@@ -420,4 +432,11 @@ func isDigit(r rune) bool {
 // isIdent reports whether r is a valid identifier character.
 func isIdent(r rune) bool {
 	return isAlpha(r) || isDigit(r) || r == '_' || r == '-'
+}
+
+// isValue reports whether r is valid in an environment variable value.
+//
+// Basically anything other than a space is okay really.
+func isValue(r rune) bool {
+	return !unicode.IsSpace(r) && r != eof
 }
